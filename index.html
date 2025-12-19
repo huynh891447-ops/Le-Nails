@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Le Nails | Premium Appointment Booking</title>
+
+    <!-- React & Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+
+    <style>
+        :root {
+            /* Apple-inspired Palette */
+            --c-text-primary: #1D1D1F;
+            --c-text-secondary: #86868B;
+            --c-bg-body: #F5F5F7;
+            --c-bg-card: #FFFFFF;
+            --c-accent: #B76E79;
+            /* Keeping the Rose Gold identity but cleaner */
+            --c-accent-hover: #A05A65;
+            --c-input-bg: #F2F2F7;
+
+            /* Glassmorphism */
+            --glass-bg: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-blur: 20px;
+
+            /* Spacing & Radius */
+            --radius-card: 24px;
+            --radius-btn: 9999px;
+            --radius-input: 12px;
+
+            /* Anim */
+            --ease-apple: cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--c-bg-body);
+            color: var(--c-text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        button,
+        input,
+        textarea {
+            font-family: inherit;
+            outline: none;
+        }
+
+        /* --- Components --- */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 28px;
+            border-radius: var(--radius-btn);
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s var(--ease-apple);
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--c-text-primary);
+            color: #FFF;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-accent {
+            background-color: var(--c-accent);
+            color: #FFF;
+        }
+
+        .btn-accent:active {
+            transform: scale(0.96);
+        }
+
+        .btn-secondary {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: var(--c-text-primary);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-danger {
+            background-color: #FF3B30;
+            color: #FFF;
+        }
+
+        .btn-danger:hover {
+            background-color: #D73329;
+        }
+
+        .card {
+            background: var(--c-bg-card);
+            border-radius: var(--radius-card);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            transition: transform 0.3s var(--ease-apple), box-shadow 0.3s var(--ease-apple);
+        }
+
+        /* Mobile optimization: less hover effect */
+        @media (hover: hover) {
+            .card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+            }
+        }
+
+        .input-apple {
+            width: 100%;
+            height: 50px;
+            background-color: var(--c-input-bg);
+            border: 1px solid transparent;
+            border-radius: var(--radius-input);
+            padding: 0 16px;
+            font-size: 17px;
+            color: var(--c-text-primary);
+            transition: all 0.2s;
+        }
+
+        textarea.input-apple {
+            height: auto;
+            padding: 16px;
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .input-apple:focus {
+            background-color: #FFF;
+            border-color: var(--c-accent);
+            box-shadow: 0 0 0 4px rgba(183, 110, 121, 0.15);
+        }
+
+        .nav-glass {
+            background: var(--glass-bg);
+            backdrop-filter: saturate(180%) blur(var(--glass-blur));
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .footer {
+            background: #FFF;
+            padding: 60px 20px 120px;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            margin-top: auto;
+        }
+
+        /* --- Transitions --- */
+        .page-enter {
+            animation: slideUpFade 0.6s var(--ease-apple) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes slideUpFade {
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Utilities --- */
+        .container {
+            max-width: 1024px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-secondary {
+            color: var(--c-text-secondary);
+        }
+
+        .grid-responsive {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .space-y-4>*+* {
+            margin-top: 16px;
+        }
+
+        /* Dashboard specific */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #E5E5EA;
+            color: #1D1D1F;
+        }
+
+        /* Calendar Styles */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #86868B;
+            padding-bottom: 8px;
+        }
+
+        /* Navbar Responsive */
+        .navbar-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 60px;
+        }
+
+        .navbar-links {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                height: auto;
+                padding: 16px 0;
+                gap: 16px;
+            }
+
+            .navbar-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            position: relative;
+            background: #F2F2F7;
+            transition: all 0.2s;
+        }
+
+        .calendar-day:hover {
+            background: #E5E5EA;
+        }
+
+        .calendar-day.selected {
+            background: var(--c-text-primary);
+            color: #FFF;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--c-accent);
+        }
+
+        .calendar-day.has-appts::after {
+            content: '';
+            width: 4px;
+            height: 4px;
+            background: var(--c-accent);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 6px;
+        }
+
+        .calendar-day.selected.has-appts::after {
+            background: #FFF;
+        }
+
+        .calendar-day.empty {
+            background: transparent;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { HashRouter, Routes, Route, Link, useLocation, useNavigate, Navigate } = ReactRouterDOM;
+
+        // --- Data & Persistence ---
+        const DEFAULT_SERVICES = [
+            { id: 1, category: 'Hands', name: 'Classic Manicure', duration: 30, price: 35, desc: 'Nail shaping, cuticle care, and polish.' },
+            { id: 2, category: 'Hands', name: 'Gel Manicure', duration: 45, price: 50, desc: 'Long-lasting gel polish with zero dry time.' },
+            { id: 3, category: 'Hands', name: 'Luxury Spa', duration: 60, price: 65, desc: 'Exfoliation, mask, hot towel, and massage.' },
+            { id: 4, category: 'Feet', name: 'Classic Pedicure', duration: 45, price: 45, desc: 'Soak, shaping, cuticle care, and polish.' },
+            { id: 5, category: 'Feet', name: 'Deluxe Pedicure', duration: 60, price: 70, desc: 'Paraffin wax, hot stones, and salt scrub.' },
+            { id: 6, category: 'Art', name: 'Nail Art (Simple)', duration: 15, price: 15, desc: 'Minimalist designs on up to 2 nails.' },
+            { id: 7, category: 'Art', name: 'Nail Art (Full)', duration: 30, price: 30, desc: 'Intricate designs or foil for full set.' }
+        ];
+
+        const DEFAULT_STAFF = [
+            { id: 1, name: 'Sarah', role: 'Senior Artist', bio: 'Specialist in 3D art and complex designs.', username: 'sarah', password: 'password', recoveryKey: '775544' },
+            { id: 2, name: 'Jessica', role: 'Nail Tech', bio: 'Expert in soothing spa treatments.', username: 'jessica', password: 'password', recoveryKey: '775544' },
+            { id: 3, name: 'Emily', role: 'Junior Tech', bio: 'Focus on precision and natural nail care.', username: 'emily', password: 'password', recoveryKey: '775544' },
+            { id: 999, name: 'Manager', role: 'Manager', bio: 'Store Manager', username: 'admin', password: 'password', recoveryKey: '775544' }
+        ];
+
+        const DEFAULT_TIMES = [
+            '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM',
+            '11:30 AM', '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM',
+            '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM',
+            '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM'
+        ];
+
+        const AppStore = {
+            getKeyAppt: () => 'lenails_appointments_v1',
+            getKeyStaff: () => 'lenails_staff_v1',
+            getKeyServices: () => 'lenails_services_v1',
+            getKeyTimes: () => 'lenails_times_v1',
+
+            getAppointments: () => {
+                const stored = localStorage.getItem(AppStore.getKeyAppt());
+                return stored ? JSON.parse(stored) : [];
+            },
+            addAppointment: (appt) => {
+                const current = AppStore.getAppointments();
+                const newAppt = { ...appt, id: Date.now(), status: 'Confirmed', createdAt: new Date().toISOString() };
+                localStorage.setItem(AppStore.getKeyAppt(), JSON.stringify([...current, newAppt]));
+                return newAppt;
+            },
+            deleteAppointment: (id) => {
+                const current = AppStore.getAppointments();
+                const updated = current.filter(a => a.id !== id);
+                localStorage.setItem(AppStore.getKeyAppt(), JSON.stringify(updated));
+            },
+
+            getStaff: () => {
+                const stored = localStorage.getItem(AppStore.getKeyStaff());
+                let staff = stored ? JSON.parse(stored) : DEFAULT_STAFF;
+
+                // DATA REPAIR: Ensure admin always exists (fixes stale localStorage issue)
+                if (!staff.find(u => u.username === 'admin')) {
+                    const admin = DEFAULT_STAFF.find(u => u.username === 'admin');
+                    if (admin) {
+                        staff.push(admin);
+                        localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(staff));
+                    }
+                }
+                return staff;
+            },
+            addStaff: (user) => {
+                const current = AppStore.getStaff();
+                // Basic check for unique username
+                if (current.find(u => u.username === user.username)) {
+                    throw new Error('Username already exists');
+                }
+                const recoveryKey = '775544';
+
+                const newUser = { ...user, id: Date.now(), recoveryKey };
+                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify([...current, newUser]));
+                return newUser;
+            },
+            deleteStaff: (id) => {
+                const current = AppStore.getStaff();
+                const updated = current.filter(u => u.id !== id);
+                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(updated));
+            },
+            resetPassword: (username, key, newPassword) => {
+                const current = AppStore.getStaff();
+                const index = current.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+
+                if (index === -1) throw new Error('User not found.');
+                // Using Universal Key check for everyone
+                if (key !== '775544') throw new Error('Invalid Safe Key.');
+
+                current[index].password = newPassword;
+                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(current));
+                return true;
+            },
+
+            // Services CRUD
+            getServices: () => {
+                const stored = localStorage.getItem(AppStore.getKeyServices());
+                if (!stored) {
+                    localStorage.setItem(AppStore.getKeyServices(), JSON.stringify(DEFAULT_SERVICES));
+                    return DEFAULT_SERVICES;
+                }
+                return JSON.parse(stored);
+            },
+            addService: (service) => {
+                const current = AppStore.getServices();
+                const newService = { ...service, id: Date.now() };
+                localStorage.setItem(AppStore.getKeyServices(), JSON.stringify([...current, newService]));
+                return newService;
+            },
+            deleteService: (id) => {
+                const current = AppStore.getServices();
+                const updated = current.filter(s => s.id !== id);
+                localStorage.setItem(AppStore.getKeyServices(), JSON.stringify(updated));
+            },
+
+            // Time Slots CRUD
+            getTimes: () => {
+                const stored = localStorage.getItem(AppStore.getKeyTimes());
+                if (!stored) {
+                    localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(DEFAULT_TIMES));
+                    return DEFAULT_TIMES;
+                }
+                return JSON.parse(stored);
+            },
+            addTime: (time) => {
+                const current = AppStore.getTimes();
+                if (current.includes(time)) return;
+                const updated = [...current, time].sort((a, b) => new Date('1970/01/01 ' + a) - new Date('1970/01/01 ' + b));
+                localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(updated));
+            },
+            deleteTime: (time) => {
+                const current = AppStore.getTimes();
+                const updated = current.filter(t => t !== time);
+                localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(updated));
+            }
+        };
+
+        const Auth = {
+            login: (username, password) => {
+                const staffList = AppStore.getStaff();
+                const user = staffList.find(s => s.username.toLowerCase() === username.toLowerCase() && s.password === password);
+                if (user) {
+                    localStorage.setItem('lenails_user', JSON.stringify(user));
+                    return user;
+                }
+                return null;
+            },
+            logout: () => {
+                localStorage.removeItem('lenails_user');
+            },
+            getUser: () => {
+                const stored = localStorage.getItem('lenails_user');
+                return stored ? JSON.parse(stored) : null;
+            }
+        };
+
+        // --- Shared Components ---
+
+        const Navbar = () => (
+            <nav className="nav-glass">
+                <div className="container navbar-container">
+                    <Link to="/" style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.5px' }}>Le Nails</Link>
+                    <div className="navbar-links">
+                        <Link to="/" style={{ color: 'var(--c-text-primary)' }}>Home</Link>
+                        <Link to="/services" style={{ color: 'var(--c-text-primary)' }}>Services</Link>
+                        <Link to="/check-appointment" style={{ color: 'var(--c-text-primary)' }}>Find My Appointment</Link>
+                        <Link to="/book" style={{ color: 'var(--c-accent)' }}>Book</Link>
+                    </div>
+                </div>
+            </nav>
+        );
+
+        const Footer = () => (
+            <footer className="footer">
+                <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px' }}>
+                    <div>
+                        <h4 style={{ fontSize: '18px', marginBottom: '16px' }}>Le Nails</h4>
+                        <p className="text-secondary" style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                            Redefining nail care with premium products and artistry.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#86868B', marginBottom: '16px', letterSpacing: '1px' }}>Contact</h4>
+                        <p style={{ fontSize: '14px', marginBottom: '8px' }}>
+                            <a href="tel:+12199378989" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                📞 (219) 937-8989
+                            </a>
+                        </p>
+                    </div>
+                    <div>
+                        <h4 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#86868B', marginBottom: '16px', letterSpacing: '1px' }}>Visit Us</h4>
+                        <p className="text-secondary" style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                            4542 Calumet Ave<br />Hammond, IN 46327
+                        </p>
+                        <p className="text-secondary" style={{ fontSize: '14px', marginTop: '8px' }}>
+                            Mon-Sat: 10am - 7pm<br />Sun: Closed
+                        </p>
+                    </div>
+                </div>
+                <div className="container" style={{ borderTop: '1px solid #E5E5EA', marginTop: '40px', paddingTop: '20px', textAlign: 'center', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p className="text-secondary" style={{ fontSize: '12px' }}>&copy; 2025 Le Nails. All rights reserved.</p>
+                    <Link to="/login" style={{ fontSize: '12px', color: 'black' }}>Staff Portal</Link>
+                </div>
+            </footer>
+        );
+
+        const Button = ({ children, variant = 'primary', ...props }) => {
+            let className = 'btn';
+            if (variant === 'accent') className += ' btn-accent';
+            else if (variant === 'secondary') className += ' btn-secondary';
+            else if (variant === 'danger') className += ' btn-danger';
+            else className += ' btn-primary';
+
+            return <button className={className} {...props} style={props.style}>{children}</button>;
+        };
+
+        const Calendar = ({ appointments, onSelectDate, selectedDate }) => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+
+            const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+            const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+
+            const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+            const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+
+            const days = [];
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                days.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                const isToday = new Date().toDateString() === dateObj.toDateString();
+                const isSelected = selectedDate && selectedDate.toDateString() === dateObj.toDateString();
+
+                // Check for appointments on this day
+                const hasAppts = appointments.some(a => {
+                    const apptDate = new Date(a.date);
+                    return apptDate.getDate() === day &&
+                        apptDate.getMonth() === currentDate.getMonth() &&
+                        apptDate.getFullYear() === currentDate.getFullYear();
+                });
+
+                let className = 'calendar-day';
+                if (isToday) className += ' today';
+                if (isSelected) className += ' selected';
+                if (hasAppts) className += ' has-appts';
+
+                days.push(
+                    <div
+                        key={day}
+                        className={className}
+                        onClick={() => onSelectDate(dateObj)}
+                    >
+                        {day}
+                    </div>
+                );
+            }
+
+            return (
+                <div className="card" style={{ padding: '24px', marginBottom: '32px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <button onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>←</button>
+                        <h3 style={{ fontSize: '16px' }}>
+                            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </h3>
+                        <button onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px' }}>→</button>
+                    </div>
+                    <div className="calendar-grid">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                            <div key={d} className="calendar-day-header">{d}</div>
+                        ))}
+                        {days}
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '12px', color: '#86868B' }}>
+                        Start selecting filtering by date (Dots indicate appointments)
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Step Components ---
+
+        const StepService = ({ onSelect, selectedId }) => {
+            const [services, setServices] = useState([]);
+            useEffect(() => {
+                setServices(AppStore.getServices());
+            }, []);
+
+            return (
+                <div className="grid-responsive">
+                    {services.map(s => (
+                        <div
+                            key={s.id}
+                            onClick={() => onSelect(s)}
+                            className="card"
+                            style={{ padding: '24px', cursor: 'pointer', border: selectedId === s.id ? '2px solid var(--c-accent)' : '2px solid transparent' }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                <h3 style={{ fontSize: '18px' }}>{s.name}</h3>
+                                <span style={{ fontWeight: '600', color: 'var(--c-accent)' }}>${s.price}</span>
+                            </div>
+                            <p className="text-secondary" style={{ fontSize: '14px', marginBottom: '16px' }}>{s.desc}</p>
+                            <span style={{ fontSize: '12px', background: '#F2F2F7', padding: '4px 8px', borderRadius: '6px' }}>
+                                {s.duration} min
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const StepStaff = ({ onSelect, selectedStaff }) => {
+            const [staffList, setStaffList] = useState([]);
+
+            useEffect(() => {
+                setStaffList(AppStore.getStaff());
+            }, []);
+
+            return (
+                <div className="grid-responsive">
+                    <div
+                        onClick={() => onSelect({ name: 'Any Professional' })}
+                        className="card"
+                        style={{ padding: '24px', cursor: 'pointer', border: selectedStaff?.name === 'Any Professional' ? '2px solid var(--c-accent)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: '16px' }}
+                    >
+                        <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#F2F2F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✨</div>
+                        <div>
+                            <h4 style={{ fontSize: '16px' }}>Any Professional</h4>
+                            <p className="text-secondary" style={{ fontSize: '13px' }}>First available</p>
+                        </div>
+                    </div>
+                    {staffList.map(s => (
+                        <div
+                            key={s.id}
+                            onClick={() => onSelect(s)}
+                            className="card"
+                            style={{ padding: '24px', cursor: 'pointer', border: selectedStaff?.id === s.id ? '2px solid var(--c-accent)' : '2px solid transparent', display: 'flex', alignItems: 'center', gap: '16px' }}
+                        >
+                            <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: '#FFF0F5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-accent)', fontWeight: 'bold' }}>{s.name[0]}</div>
+                            <div>
+                                <h4 style={{ fontSize: '16px' }}>{s.name}</h4>
+                                <p className="text-secondary" style={{ fontSize: '13px', marginBottom: '4px' }}>{s.role}</p>
+                                <p style={{ fontSize: '11px', color: '#86868B' }}>{s.bio}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        const StepDateTime = ({ date, time, onDateChange, onTimeChange, selectedStaffId }) => {
+            const [times, setTimes] = useState([]);
+            const [appointments, setAppointments] = useState([]);
+
+            useEffect(() => {
+                setTimes(AppStore.getTimes());
+                setAppointments(AppStore.getAppointments());
+            }, []);
+
+            const dates = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i); return d; });
+
+            // Conflict Check
+            const isTimeBlocked = (t) => {
+                if (!date) return true; // Block if no date selected
+
+                return appointments.some(appt => {
+                    const d = new Date(appt.date);
+                    const isSameDay = d.getDate() === date.getDate() &&
+                        d.getMonth() === date.getMonth() &&
+                        d.getFullYear() === date.getFullYear();
+                    const isSameTime = appt.time === t;
+
+                    if (!isSameDay || !isSameTime) return false;
+
+                    // If "Any Professional" (undefined or generic ID) is selected in basic flow, 
+                    // we might want to check global capacity?
+                    // For now, if a SPECIFIC staff is picked, check THEIR schedule.
+                    if (selectedStaffId && appt.staff?.id === selectedStaffId) {
+                        return true;
+                    }
+
+                    // If no specific staff passed (or "Any"), maybe we don't block?
+                    // OR if users want strict blocking: "If ANYONE booked this slot, show it as taken"? 
+                    // The user prompt said: "can't pick a time on a day someone else has already pick".
+                    // This implies strict simple collision for the assigned staff.
+
+                    return false;
+                });
+            };
+
+            return (
+                <div className="card" style={{ padding: '32px' }}>
+                    <h4 style={{ marginBottom: '16px' }}>Select Date</h4>
+                    <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '12px', marginBottom: '24px' }}>
+                        {dates.map((d, i) => {
+                            const isSelected = date?.toDateString() === d.toDateString();
+                            return (
+                                <div
+                                    key={i}
+                                    onClick={() => onDateChange(d)}
+                                    style={{
+                                        minWidth: '70px', padding: '12px', borderRadius: '14px', textAlign: 'center', cursor: 'pointer',
+                                        background: isSelected ? 'var(--c-text-primary)' : '#F2F2F7',
+                                        color: isSelected ? '#FFF' : 'inherit',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '12px', opacity: 0.7, textTransform: 'uppercase' }}>{d.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                                    <div style={{ fontSize: '20px', fontWeight: '600' }}>{d.getDate()}</div>
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <h4 style={{ marginBottom: '16px' }}>Select Time</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '10px' }}>
+                        {times.map(t => {
+                            const blocked = isTimeBlocked(t);
+                            return (
+                                <button
+                                    key={t}
+                                    onClick={() => !blocked && onTimeChange(t)}
+                                    disabled={blocked}
+                                    style={{
+                                        padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '500', fontSize: '13px',
+                                        background: time === t ? 'var(--c-accent)' : blocked ? '#F5F5F7' : '#F2F2F7',
+                                        color: time === t ? '#FFF' : blocked ? '#C7C7CC' : 'inherit',
+                                        opacity: blocked ? 0.6 : 1,
+                                        cursor: blocked ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {t}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const StepReview = ({ data, onUpdateCustomer }) => (
+            <div className="card" style={{ padding: '32px', maxWidth: '600px', margin: '0 auto' }}>
+                <h3 style={{ textAlign: 'center', marginBottom: '24px', fontSize: '24px' }}>One last thing.</h3>
+
+                <div style={{ background: '#F9F9F9', padding: '20px', borderRadius: '16px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span className="text-secondary">Service</span>
+                        <span style={{ fontWeight: 600 }}>{data.service?.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span className="text-secondary">Date</span>
+                        <span style={{ fontWeight: 600 }}>{data.date?.toLocaleDateString()} at {data.time}</span>
+                    </div>
+                    {data.staff && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span className="text-secondary">Professional</span>
+                            <span style={{ fontWeight: 600 }}>{data.staff.name}</span>
+                        </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span className="text-secondary">Total</span>
+                        <span style={{ fontWeight: 600, color: 'var(--c-accent)' }}>${data.service?.price}</span>
+                    </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', color: '#86868B', marginLeft: '4px' }}>Your Name</label>
+                        <input
+                            type="text"
+                            className="input-apple"
+                            placeholder="Jane Doe"
+                            value={data.customer.name}
+                            onChange={(e) => onUpdateCustomer('name', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', color: '#86868B', marginLeft: '4px' }}>Phone Number</label>
+                        <input
+                            type="tel"
+                            className="input-apple"
+                            placeholder="(555) 000-0000"
+                            value={data.customer.phone}
+                            onChange={(e) => onUpdateCustomer('phone', e.target.value)}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Pages ---
+
+        const Home = () => (
+            <div className="page-enter">
+                <section style={{ height: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', background: '#000', color: '#FFF', position: 'relative', overflow: 'hidden' }}>
+                    <img src="https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=2000" style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }} />
+                    <div style={{ position: 'relative', zIndex: 1, padding: '20px' }}>
+                        <h1 style={{ fontSize: 'clamp(40px, 8vw, 72px)', fontWeight: '700', marginBottom: '16px', lineHeight: 1.1 }}>
+                            Redefine <span style={{ color: '#FFD1DC' }}>Elegance.</span>
+                        </h1>
+                        <p style={{ fontSize: '20px', fontWeight: '400', maxWidth: '500px', margin: '0 auto 32px', opacity: 0.9 }}>
+                            Experience premium nail artistry in a sanctuary designed for you.
+                        </p>
+                        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+                            <Link to="/book"><Button variant="accent" style={{ padding: '16px 40px', fontSize: '18px' }}>Book Appointment</Button></Link>
+                            <Link to="/services"><Button variant="secondary" style={{ background: 'rgba(255,255,255,0.2)', color: '#FFF', padding: '16px 40px', fontSize: '18px', backdropFilter: 'blur(10px)' }}>View Menu</Button></Link>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="container" style={{ padding: '80px 20px' }}>
+                    <div className="grid-responsive">
+                        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '40px', marginBottom: '20px' }}>🛡️</div>
+                            <h3 style={{ marginBottom: '10px' }}>Pristine Hygiene</h3>
+                            <p className="text-secondary">We adhere to strict hospital-grade sanitation protocols to ensure your absolute safety and peace of mind.</p>
+                        </div>
+                        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '40px', marginBottom: '20px' }}>🎨</div>
+                            <h3 style={{ marginBottom: '10px' }}>Artistry</h3>
+                            <p className="text-secondary">From minimalism to intricate masterpieces, our artists bring your vision to life.</p>
+                        </div>
+                        <div className="card" style={{ padding: '40px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '40px', marginBottom: '20px' }}>✨</div>
+                            <h3 style={{ marginBottom: '10px' }}>Luxury</h3>
+                            <p className="text-secondary">Sip on sparkling water and relax in our massage chairs while we pamper you.</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        );
+
+        const ServicesPage = () => {
+            const navigate = useNavigate();
+            return (
+                <div className="container page-enter" style={{ padding: '40px 20px 80px' }}>
+                    <h1 className="text-center" style={{ fontSize: '40px', marginBottom: '40px' }}>Service Menu</h1>
+                    <StepService onSelect={(s) => navigate('/book', { state: { selectedService: s } })} />
+                </div>
+            );
+        };
+
+        const Booking = () => {
+            const location = useLocation();
+            const navigate = useNavigate();
+            const [step, setStep] = useState(1);
+            const [data, setData] = useState({
+                service: null,
+                staff: null,
+                date: null,
+                time: null,
+                customer: { name: '', phone: '' }
+            });
+
+            useEffect(() => {
+                if (location.state?.selectedService) {
+                    setData(d => ({ ...d, service: location.state.selectedService }));
+                    setStep(2);
+                }
+            }, [location.state]);
+
+            const updateField = (field, value) => {
+                setData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const updateCustomer = (field, value) => {
+                setData(prev => ({ ...prev, customer: { ...prev.customer, [field]: value } }));
+            }
+
+            const next = () => setStep(s => s + 1);
+            const back = () => setStep(s => s - 1);
+
+            const handleConfirm = () => {
+                if (!data.customer.name || !data.customer.phone) return;
+                AppStore.addAppointment(data);
+                navigate('/success', { state: { staffName: data.staff?.name || 'one of our professionals' } });
+            };
+
+            return (
+                <div className="container page-enter" style={{ padding: '40px 20px', minHeight: '80vh', maxWidth: '800px' }}>
+                    {/* Progress */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px', gap: '8px' }}>
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} style={{
+                                width: '10px', height: '10px', borderRadius: '50%',
+                                background: step >= i ? 'var(--c-accent)' : '#E5E5EA',
+                                transition: 'all 0.3s'
+                            }} />
+                        ))}
+                    </div>
+
+                    <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '32px' }}>
+                            {step === 1 && "Choose your treatment"}
+                            {step === 2 && "Select a Professional"}
+                            {step === 3 && "Pick a Time"}
+                            {step === 4 && "Confirm Booking"}
+                        </h2>
+                    </div>
+
+                    <div style={{ marginBottom: '40px' }}>
+                        {step === 1 && <StepService onSelect={(s) => { updateField('service', s); next(); }} selectedId={data.service?.id} />}
+                        {step === 2 && <StepStaff onSelect={(s) => { updateField('staff', s); next(); }} selectedStaff={data.staff} />}
+                        {step === 3 && <StepDateTime date={data.date} time={data.time} onDateChange={(d) => updateField('date', d)} onTimeChange={(t) => updateField('time', t)} selectedStaffId={data.staff?.id} />}
+                        {step === 4 && <StepReview data={data} onUpdateCustomer={updateCustomer} />}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                        {step > 1 && <Button variant="secondary" onClick={back} style={{ width: '120px' }}>Back</Button>}
+                        {step === 3 && <Button variant="accent" onClick={next} disabled={!data.date || !data.time} style={{ width: '200px' }}>Continue</Button>}
+                        {step === 4 && <Button variant="accent" onClick={handleConfirm} disabled={!data.customer.name || !data.customer.phone} style={{ width: '200px' }}>Confirm</Button>}
+                    </div>
+                </div>
+            );
+        };
+
+        const BookingSuccessPage = () => {
+            const location = useLocation();
+            const staffName = location.state?.staffName || 'Our team';
+
+            return (
+                <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px 20px' }}>
+                    <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎉</div>
+                    <h1 style={{ fontSize: '32px', marginBottom: '16px' }}>Booking Confirmed!</h1>
+                    <p className="text-secondary" style={{ maxWidth: '500px', margin: '0 auto 32px', fontSize: '18px', lineHeight: '1.6' }}>
+                        Thank you for choosing Le Nails. We have received your request. <br />
+                        <strong style={{ color: 'var(--c-text-primary)' }}>{staffName}</strong> will reach out to you shortly to confirm the details.
+                    </p>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                        <Link to="/"><Button variant="secondary">Back Home</Button></Link>
+                        <Link to="/check-appointment"><Button variant="accent">View My Booking</Button></Link>
+                    </div>
+                </div>
+            );
+        };
+
+        const CheckAppointmentPage = () => {
+            const [name, setName] = useState('');
+            const [results, setResults] = useState(null);
+
+            const handleSearch = (e) => {
+                e.preventDefault();
+                if (!name.trim()) return;
+
+                const allAppts = AppStore.getAppointments();
+                // Simple partial match, case-insensitive
+                const matches = allAppts.filter(a =>
+                    a.customer.name.toLowerCase().includes(name.toLowerCase())
+                ).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+                setResults(matches);
+            };
+
+            return (
+                <div className="container page-enter" style={{ minHeight: '60vh', padding: '80px 20px', maxWidth: '600px' }}>
+                    <h1 className="text-center" style={{ marginBottom: '40px' }}>Find My Appointment</h1>
+
+                    <div className="card" style={{ padding: '32px', marginBottom: '40px' }}>
+                        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '12px' }}>
+                            <input
+                                className="input-apple"
+                                placeholder="Enter your name..."
+                                value={name}
+                                onChange={e => setName(e.target.value)}
+                                required
+                            />
+                            <Button type="submit" variant="accent">Search</Button>
+                        </form>
+                    </div>
+
+                    {results && (
+                        <div>
+                            <h3 style={{ marginBottom: '24px', fontSize: '18px' }}>
+                                Found {results.length} appointment{results.length !== 1 ? 's' : ''}
+                            </h3>
+                            {results.length === 0 ? (
+                                <p className="text-secondary">No upcoming appointments found for "{name}".</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {results.map(appt => (
+                                        <div key={appt.id} className="card" style={{ padding: '24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                                <span className="status-badge" style={{ background: '#E0F8E0', color: '#105010' }}>Confirmed</span>
+                                                <span style={{ fontSize: '14px', color: '#86868B' }}>#{appt.id.toString().slice(-6)}</span>
+                                            </div>
+                                            <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{appt.service?.name}</h3>
+                                            <p className="text-secondary" style={{ marginBottom: '16px' }}>
+                                                {new Date(appt.date).toLocaleDateString()} at {appt.time}
+                                            </p>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px' }}>
+                                                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F2F2F7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {appt.staff?.name ? appt.staff.name[0] : '✨'}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: '600' }}>{appt.staff?.name || 'Any Professional'}</div>
+                                                    <div style={{ fontSize: '12px', color: '#86868B' }}>Nail Artist</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const LoginPage = () => {
+            const navigate = useNavigate();
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [showPassword, setShowPassword] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleLogin = (e) => {
+                e.preventDefault();
+                const user = Auth.login(username, password);
+                if (user) {
+                    if (user.role === 'Manager') {
+                        navigate('/manager');
+                    } else {
+                        navigate('/staff');
+                    }
+                } else {
+                    setError('Invalid credentials.');
+                }
+            };
+
+            return (
+                <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card" style={{ padding: '40px', width: '100%', maxWidth: '400px' }}>
+                        <h2 style={{ textAlign: 'center', marginBottom: '24px' }}>Staff Portal</h2>
+                        {error && <div style={{ background: '#FFE5E5', color: '#D00', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+                        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Username</label>
+                                <input type="text" className="input-apple" value={username} onChange={e => setUsername(e.target.value)} required />
+                            </div>
+                            <div style={{ position: 'relative' }}>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Password</label>
+                                <input type={showPassword ? "text" : "password"} className="input-apple" value={password} onChange={e => setPassword(e.target.value)} required />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={{ position: 'absolute', right: '12px', top: '38px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#86868B' }}
+                                >
+                                    {showPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                            <Button type="submit" variant="accent" style={{ marginTop: '8px', width: '100%' }}>Login</Button>
+                        </form>
+                        <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <Link to="/forgot-password"><Button variant="secondary" style={{ width: '100%' }}>Forgot Password?</Button></Link>
+                            <Link to="/register" style={{ color: 'var(--c-accent)', fontSize: '14px', fontWeight: '500' }}>Create an Account</Link>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ForgotPasswordPage = () => {
+            const navigate = useNavigate();
+            const [step, setStep] = useState(1);
+            const [username, setUsername] = useState('');
+            const [key, setKey] = useState('');
+            const [newPassword, setNewPassword] = useState('');
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState(false);
+
+            const handleReset = (e) => {
+                e.preventDefault();
+                try {
+                    AppStore.resetPassword(username, key, newPassword);
+                    setSuccess(true);
+                } catch (err) {
+                    setError(err.message);
+                }
+            }
+
+            if (success) {
+                return (
+                    <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="card" style={{ padding: '40px', textAlign: 'center', maxWidth: '400px' }}>
+                            <h2 style={{ marginBottom: '16px' }}>Password Reset!</h2>
+                            <p className="text-secondary" style={{ marginBottom: '24px' }}>Your password has been successfully updated.</p>
+                            <Link to="/login"><Button variant="accent">Login Now</Button></Link>
+                        </div>
+                    </div>
+                )
+            }
+
+            return (
+                <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card" style={{ padding: '40px', width: '100%', maxWidth: '400px' }}>
+                        <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>Recovery</h2>
+                        <p className="text-secondary" style={{ textAlign: 'center', fontSize: '14px', marginBottom: '24px' }}>Enter your username and the Safe Key.</p>
+
+                        {error && <div style={{ background: '#FFE5E5', color: '#D00', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+
+                        <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Username</label>
+                                <input type="text" className="input-apple" value={username} onChange={e => setUsername(e.target.value)} required />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Safe Key</label>
+                                <input type="text" className="input-apple" value={key} onChange={e => setKey(e.target.value)} placeholder="Enter your 6-digit key" required />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>New Password</label>
+                                <input type="password" className="input-apple" value={newPassword} onChange={e => setNewPassword(e.target.value)} required />
+                            </div>
+                            <Button type="submit" variant="accent" style={{ marginTop: '8px' }}>Reset Password</Button>
+                        </form>
+                        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                            <Link to="/login" style={{ color: 'var(--c-text-secondary)', fontSize: '14px' }}>Back to Login</Link>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const RegisterPage = () => {
+            const navigate = useNavigate();
+            const [formData, setFormData] = useState({ name: '', role: '', bio: '', username: '', password: '' });
+            const [error, setError] = useState('');
+            const [createdUser, setCreatedUser] = useState(null);
+
+            const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                try {
+                    const newUser = AppStore.addStaff(formData);
+                    setCreatedUser(newUser);
+                } catch (err) {
+                    setError(err.message);
+                }
+            };
+
+            if (createdUser) {
+                return (
+                    <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="card" style={{ padding: '40px', width: '100%', maxWidth: '500px', textAlign: 'center' }}>
+                            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔐</div>
+                            <h2 style={{ marginBottom: '16px' }}>Account Created!</h2>
+                            <p style={{ marginBottom: '8px' }}>Welcome to the team, {createdUser.name}.</p>
+
+                            <div style={{ background: '#FFF0F5', padding: '24px', borderRadius: '12px', margin: '24px 0', border: '1px border var(--c-accent)' }}>
+                                <p style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: 'var(--c-accent)', marginBottom: '8px' }}>Your Safe Key</p>
+                                <div style={{ fontSize: '32px', fontWeight: '700', letterSpacing: '2px', fontFamily: 'monospace' }}>{createdUser.recoveryKey}</div>
+                                <p style={{ fontSize: '13px', marginTop: '16px', color: '#86868B', lineHeight: '1.4' }}>
+                                    <strong>IMPORTANT:</strong> Please save this key immediately. <br />You will need it to reset your password if you forget it.
+                                </p>
+                            </div>
+
+                            <Button onClick={() => { Auth.login(createdUser.username, createdUser.password); navigate('/staff'); }} variant="accent" style={{ width: '100%' }}>
+                                I've Saved It, Continue
+                            </Button>
+                        </div>
+                    </div>
+                )
+            }
+
+            return (
+                <div className="container page-enter" style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+                    <div className="card" style={{ padding: '40px', width: '100%', maxWidth: '500px' }}>
+                        <h2 style={{ textAlign: 'center', marginBottom: '24px' }}>Join Le Nails Team</h2>
+                        {error && <div style={{ background: '#FFE5E5', color: '#D00', padding: '10px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px' }}>{error}</div>}
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Full Name</label>
+                                <input type="text" name="name" className="input-apple" value={formData.name} onChange={handleChange} required placeholder="e.g. Alice Smith" />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Role</label>
+                                <input type="text" name="role" className="input-apple" value={formData.role} onChange={handleChange} required placeholder="e.g. Senior Artist" />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Bio (Visible to clients)</label>
+                                <textarea name="bio" className="input-apple" value={formData.bio} onChange={handleChange} required placeholder="Tell clients what you are best at..." />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Username</label>
+                                    <input type="text" name="username" className="input-apple" value={formData.username} onChange={handleChange} required />
+                                </div>
+                                <div>
+                                    <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Password</label>
+                                    <input type="password" name="password" className="input-apple" value={formData.password} onChange={handleChange} required />
+                                </div>
+                            </div>
+                            <Button type="submit" variant="accent" style={{ width: '100%', marginTop: '16px' }}>Create Account</Button>
+                        </form>
+                        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                            <Link to="/login" style={{ color: 'var(--c-text-secondary)', fontSize: '14px' }}>Already have an account? Login</Link>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+
+        const ManagerDashboard = () => {
+            const navigate = useNavigate();
+            const [user, setUser] = useState(Auth.getUser());
+            const [tab, setTab] = useState('overview'); // overview, services, staff
+            const [appointments, setAppointments] = useState([]);
+            const [services, setServices] = useState([]);
+            const [staff, setStaff] = useState([]);
+            const [times, setTimes] = useState([]);
+            const [refresh, setRefresh] = useState(0);
+            const [selectedDate, setSelectedDate] = useState(new Date());
+
+            useEffect(() => {
+                if (!user || user.role !== 'Manager') {
+                    navigate('/login');
+                    return;
+                }
+                setAppointments(AppStore.getAppointments());
+                setServices(AppStore.getServices());
+                setStaff(AppStore.getStaff());
+                setTimes(AppStore.getTimes());
+            }, [user, navigate, refresh]);
+
+            const filteredAppointments = useMemo(() => {
+                return appointments.filter(a => {
+                    const d = new Date(a.date);
+                    return d.getDate() === selectedDate.getDate() &&
+                        d.getMonth() === selectedDate.getMonth() &&
+                        d.getFullYear() === selectedDate.getFullYear();
+                }).sort((a, b) => new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time));
+            }, [appointments, selectedDate]);
+
+            const handleAddService = (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newService = {
+                    category: form.category.value,
+                    name: form.name.value,
+                    duration: parseInt(form.duration.value),
+                    price: parseFloat(form.price.value),
+                    desc: form.desc.value
+                };
+                AppStore.addService(newService);
+                form.reset();
+                setRefresh(r => r + 1);
+            };
+
+            const handleDeleteService = (id) => {
+                if (confirm('Delete this service?')) {
+                    AppStore.deleteService(id);
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            const handleDeleteStaff = (id) => {
+                if (confirm('Delete this staff member?')) {
+                    AppStore.deleteStaff(id);
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            const handleAddTime = (e) => {
+                e.preventDefault();
+                const time = e.target.time.value;
+                if (time) {
+                    AppStore.addTime(time);
+                    e.target.reset();
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            const handleDeleteTime = (t) => {
+                if (confirm('Remove this time slot?')) {
+                    AppStore.deleteTime(t);
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            return (
+                <div className="container page-enter" style={{ padding: '40px 20px', minHeight: '80vh' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                        <div>
+                            <h1 style={{ fontSize: '32px' }}>Manager Portal</h1>
+                            <p className="text-secondary">Welcome, Admin</p>
+                        </div>
+                        <Button variant="secondary" onClick={() => { Auth.logout(); navigate('/login'); }}>Logout</Button>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', borderBottom: '1px solid #E5E5EA', paddingBottom: '16px', overflowX: 'auto' }}>
+                        <button onClick={() => setTab('overview')} style={{ background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: tab === 'overview' ? 'var(--c-accent)' : '#86868B', cursor: 'pointer' }}>Overview</button>
+                        <button onClick={() => setTab('services')} style={{ background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: tab === 'services' ? 'var(--c-accent)' : '#86868B', cursor: 'pointer' }}>Services</button>
+                        <button onClick={() => setTab('staff')} style={{ background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: tab === 'staff' ? 'var(--c-accent)' : '#86868B', cursor: 'pointer' }}>Staff</button>
+                        <button onClick={() => setTab('availability')} style={{ background: 'none', border: 'none', fontSize: '16px', fontWeight: '600', color: tab === 'availability' ? 'var(--c-accent)' : '#86868B', cursor: 'pointer' }}>Availability</button>
+                    </div>
+
+                    {tab === 'overview' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+                            <div>
+                                <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>Global Calendar</h2>
+                                <Calendar appointments={appointments} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+                            </div>
+                            <div>
+                                <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>All Appointments ({filteredAppointments.length})</h2>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {filteredAppointments.map(appt => (
+                                        <div key={appt.id} className="card" style={{ padding: '24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                                <span className="status-badge">{appt.time}</span>
+                                                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-accent)' }}>{appt.staff?.name}</span>
+                                            </div>
+                                            <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>{appt.service?.name}</h3>
+                                            <div style={{ fontSize: '14px' }}>Client: {appt.customer.name} ({appt.customer.phone})</div>
+                                        </div>
+                                    ))}
+                                    {filteredAppointments.length === 0 && <p className="text-secondary">No appointments.</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {tab === 'services' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '40px' }}>
+                            <div className="grid-responsive">
+                                {services.map(s => (
+                                    <div key={s.id} className="card" style={{ padding: '24px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <h4>{s.name}</h4>
+                                            <button onClick={() => handleDeleteService(s.id)} style={{ color: 'red', border: 'none', background: 'none', cursor: 'pointer' }}>Delete</button>
+                                        </div>
+                                        <p className="text-secondary" style={{ fontSize: '14px' }}>{s.desc}</p>
+                                        <div style={{ marginTop: '8px', fontWeight: 'bold' }}>${s.price} • {s.duration} min</div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="card" style={{ padding: '24px', height: 'fit-content' }}>
+                                <h3 style={{ marginBottom: '16px' }}>Add Service</h3>
+                                <form onSubmit={handleAddService} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <input name="name" placeholder="Service Name" className="input-apple" required />
+                                    <input name="category" placeholder="Category (Hands/Feet)" className="input-apple" required />
+                                    <input name="price" type="number" placeholder="Price ($)" className="input-apple" required />
+                                    <input name="duration" type="number" placeholder="Duration (min)" className="input-apple" required />
+                                    <textarea name="desc" placeholder="Description" className="input-apple" style={{ minHeight: '80px' }} required />
+                                    <Button type="submit" variant="accent">Add Service</Button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {tab === 'staff' && (
+                        <div className="grid-responsive">
+                            {staff.map(s => (
+                                <div key={s.id} className="card" style={{ padding: '24px', border: s.role === 'Manager' ? '2px solid var(--c-accent)' : 'none' }}>
+                                    <h3>{s.name}</h3>
+                                    <p className="text-secondary">{s.role}</p>
+                                    <p style={{ fontSize: '12px', marginTop: '8px' }}>Username: {s.username}</p>
+                                    {s.role !== 'Manager' && (
+                                        <Button variant="danger" onClick={() => handleDeleteStaff(s.id)} style={{ marginTop: '16px', fontSize: '12px', padding: '8px 16px' }}>Delete User</Button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {tab === 'availability' && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '40px' }}>
+                            <div className="grid-responsive">
+                                {times.map(t => (
+                                    <div key={t} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontWeight: '600' }}>{t}</span>
+                                        <button onClick={() => handleDeleteTime(t)} style={{ color: '#FF3B30', border: 'none', background: 'none', cursor: 'pointer' }}>×</button>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="card" style={{ padding: '24px', height: 'fit-content' }}>
+                                <h3 style={{ marginBottom: '16px' }}>Add Time Slot</h3>
+                                <form onSubmit={handleAddTime} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <input name="time" placeholder="e.g. 07:00 PM" className="input-apple" required />
+                                    <p style={{ fontSize: '12px', color: '#86868B' }}>Format: HH:MM AM/PM</p>
+                                    <Button type="submit" variant="accent">Add Slot</Button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const StaffDashboard = () => {
+            const navigate = useNavigate();
+            const [user, setUser] = useState(Auth.getUser());
+            const [appointments, setAppointments] = useState([]);
+            const [refresh, setRefresh] = useState(0);
+            const [selectedDate, setSelectedDate] = useState(new Date());
+
+            useEffect(() => {
+                if (!user) {
+                    navigate('/login');
+                    return;
+                }
+                const all = AppStore.getAppointments();
+                const relevant = all.filter(a => a.staff?.name === user.name || a.staff?.name === 'Any Professional');
+                setAppointments(relevant);
+            }, [user, navigate, refresh]);
+
+            // Filter by selected Date
+            const filteredAppointments = useMemo(() => {
+                return appointments.filter(a => {
+                    const d = new Date(a.date);
+                    return d.getDate() === selectedDate.getDate() &&
+                        d.getMonth() === selectedDate.getMonth() &&
+                        d.getFullYear() === selectedDate.getFullYear();
+                }).sort((a, b) => {
+                    // Simple text sort for "09:00 AM" works decently for same-day
+                    return new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time);
+                });
+            }, [appointments, selectedDate]);
+
+            const handleLogout = () => {
+                Auth.logout();
+                navigate('/login');
+            };
+
+            const handleDeleteAppt = (id) => {
+                if (confirm('Are you sure you want to cancel this appointment?')) {
+                    AppStore.deleteAppointment(id);
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            const handleDeleteAccount = () => {
+                if (confirm('WARNING: This will permanently delete your account and remove you from the booking system. Are you sure?')) {
+                    AppStore.deleteStaff(user.id);
+                    Auth.logout();
+                    navigate('/');
+                }
+            }
+
+            if (!user) return null;
+
+            return (
+                <div className="container page-enter" style={{ padding: '40px 20px', minHeight: '80vh' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+                        <div>
+                            <h1 style={{ fontSize: '32px' }}>Hello, {user.name}</h1>
+                            <p className="text-secondary">{user.role}</p>
+                        </div>
+                        <Button variant="secondary" onClick={handleLogout}>Logout</Button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+
+                        {/* Calendar Column */}
+                        <div>
+                            <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>Overview</h2>
+                            <Calendar
+                                appointments={appointments}
+                                selectedDate={selectedDate}
+                                onSelectDate={setSelectedDate}
+                            />
+                        </div>
+
+                        {/* List Column */}
+                        <div>
+                            <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>
+                                Schedule for {selectedDate.toLocaleDateString()}
+                            </h2>
+
+                            {filteredAppointments.length === 0 ? (
+                                <div className="card" style={{ padding: '40px', textAlign: 'center', marginBottom: '60px' }}>
+                                    <p className="text-secondary">No appointments for this day.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '60px' }}>
+                                    {filteredAppointments.map(appt => (
+                                        <div key={appt.id} className="card" style={{ padding: '24px' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                <span className="status-badge" style={{ background: '#E0F8E0', color: '#105010' }}>{appt.time}</span>
+                                                <button onClick={() => handleDeleteAppt(appt.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#FF3B30', fontSize: '18px' }} title="Cancel Appointment">×</button>
+                                            </div>
+                                            <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{appt.service?.name}</h3>
+                                            <div style={{ fontSize: '14px', marginBottom: '4px' }}>
+                                                <span>Client: <strong>{appt.customer.name}</strong></span>
+                                            </div>
+                                            <div style={{ fontSize: '14px', color: '#86868B' }}>
+                                                Phone: {appt.customer.phone}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid #E5E5EA', paddingTop: '40px' }}>
+                        <h3 style={{ fontSize: '16px', color: '#FF3B30', marginBottom: '16px' }}>Danger Zone</h3>
+                        <Button variant="danger" onClick={handleDeleteAccount}>Delete My Account</Button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => (
+            <HashRouter>
+                <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+                    <Navbar />
+                    <div style={{ flex: 1 }}>
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/services" element={<ServicesPage />} />
+                            <Route path="/book" element={<Booking />} />
+                            <Route path="/success" element={<BookingSuccessPage />} />
+                            <Route path="/check-appointment" element={<CheckAppointmentPage />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                            <Route path="/register" element={<RegisterPage />} />
+                            <Route path="/staff" element={<StaffDashboard />} />
+                            <Route path="/manager" element={<ManagerDashboard />} />
+                        </Routes>
+                    </div>
+                    <Footer />
+                </div>
+            </HashRouter>
+        );
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>
