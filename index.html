@@ -13,7 +13,12 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
     <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
     <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+
+    <!-- Firebase SDKs (Compat/Namespaced for UMD usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
@@ -361,118 +366,157 @@
             '04:30 PM', '05:00 PM', '05:30 PM', '06:00 PM', '06:30 PM'
         ];
 
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1gubBpy2LIYW3qL--SJtWZUMyTiBtTGs",
+            authDomain: "le-nails-80ea2.firebaseapp.com",
+            projectId: "le-nails-80ea2",
+            storageBucket: "le-nails-80ea2.firebasestorage.app",
+            messagingSenderId: "438388463006",
+            appId: "1:438388463006:web:d2c28643a04e96c8b6b28f",
+            measurementId: "G-R1JYQ76Q3X"
+        };
+
+        let db;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("Firebase initialized");
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+        }
+
+        // --- DATA STORE (Refactored for Async/Firebase) ---
         const AppStore = {
-            getKeyAppt: () => 'lenails_appointments_v1',
-            getKeyStaff: () => 'lenails_staff_v1',
-            getKeyServices: () => 'lenails_services_v1',
-            getKeyTimes: () => 'lenails_times_v1',
+            // Helpers
+            getKeyServices: () => 'lenails_services',
+            getKeyStaff: () => 'lenails_staff',
+            getKeyAppt: () => 'lenails_appointments',
+            getKeyTimes: () => 'lenails_times',
 
-            getAppointments: () => {
-                const stored = localStorage.getItem(AppStore.getKeyAppt());
-                return stored ? JSON.parse(stored) : [];
+            getAppointments: async () => {
+                if (!db) return [];
+                const snapshot = await db.collection('appointments').get();
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             },
-            addAppointment: (appt) => {
-                const current = AppStore.getAppointments();
-                const newAppt = { ...appt, id: Date.now(), status: 'Confirmed', createdAt: new Date().toISOString() };
-                localStorage.setItem(AppStore.getKeyAppt(), JSON.stringify([...current, newAppt]));
-                return newAppt;
+            addAppointment: async (appt) => {
+                if (!db) throw new Error("Firebase not initialized");
+                const newAppt = { ...appt, createdAt: new Date().toISOString() };
+                const docRef = await db.collection('appointments').add(newAppt);
+                return { id: docRef.id, ...newAppt };
             },
-            deleteAppointment: (id) => {
-                const current = AppStore.getAppointments();
-                const updated = current.filter(a => a.id !== id);
-                localStorage.setItem(AppStore.getKeyAppt(), JSON.stringify(updated));
+            deleteAppointment: async (id) => {
+                if (!db) return;
+                await db.collection('appointments').doc(id).delete();
+            },
+            updateAppointment: async (updatedAppt) => {
+                if (!db) return;
+                const { id, ...data } = updatedAppt; // Remove ID from data payload
+                await db.collection('appointments').doc(id).update(data);
             },
 
-            getStaff: () => {
-                const stored = localStorage.getItem(AppStore.getKeyStaff());
-                let staff = stored ? JSON.parse(stored) : DEFAULT_STAFF;
+            getStaff: async () => {
+                if (!db) return DEFAULT_STAFF;
+                const snapshot = await db.collection('staff').get();
+                const staff = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // DATA REPAIR: Ensure admin always exists (fixes stale localStorage issue)
-                if (!staff.find(u => u.username === 'admin')) {
+                // Initialize default admin if empty
+                if (staff.length === 0) {
                     const admin = DEFAULT_STAFF.find(u => u.username === 'admin');
                     if (admin) {
-                        staff.push(admin);
-                        localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(staff));
+                        try {
+                            // Use set to specify ID if possible, or just add
+                            await db.collection('staff').add(admin);
+                            staff.push(admin);
+                        } catch (e) { console.error("Error init admin", e); }
                     }
                 }
                 return staff;
             },
-            addStaff: (user) => {
-                const current = AppStore.getStaff();
-                // Basic check for unique username
-                if (current.find(u => u.username === user.username)) {
+            addStaff: async (user) => {
+                if (!db) throw new Error("Firebase not initialized");
+                // Check if username exists (Client-side check is okay for this scale)
+                const currentStaff = await AppStore.getStaff();
+                if (currentStaff.find(u => u.username === user.username)) {
                     throw new Error('Username already exists');
                 }
                 const recoveryKey = '775544';
-
-                const newUser = { ...user, id: Date.now(), recoveryKey };
-                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify([...current, newUser]));
-                return newUser;
+                const newUser = { ...user, recoveryKey };
+                const docRef = await db.collection('staff').add(newUser);
+                return { id: docRef.id, ...newUser };
             },
-            deleteStaff: (id) => {
-                const current = AppStore.getStaff();
-                const updated = current.filter(u => u.id !== id);
-                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(updated));
+            deleteStaff: async (id) => {
+                if (!db) return;
+                await db.collection('staff').doc(id).delete();
             },
-            resetPassword: (username, key, newPassword) => {
-                const current = AppStore.getStaff();
-                const index = current.findIndex(u => u.username.toLowerCase() === username.toLowerCase());
+            resetPassword: async (username, key, newPassword) => {
+                if (!db) throw new Error("Firebase not initialized");
+                const currentStaff = await AppStore.getStaff();
+                const user = currentStaff.find(u => u.username.toLowerCase() === username.toLowerCase());
 
-                if (index === -1) throw new Error('User not found.');
-                // Using Universal Key check for everyone
+                if (!user) throw new Error('User not found.');
                 if (key !== '775544') throw new Error('Invalid Safe Key.');
 
-                current[index].password = newPassword;
-                localStorage.setItem(AppStore.getKeyStaff(), JSON.stringify(current));
+                await db.collection('staff').doc(user.id).update({ password: newPassword });
                 return true;
             },
 
             // Services CRUD
-            getServices: () => {
-                const stored = localStorage.getItem(AppStore.getKeyServices());
-                if (!stored) {
-                    localStorage.setItem(AppStore.getKeyServices(), JSON.stringify(DEFAULT_SERVICES));
+            getServices: async () => {
+                if (!db) return DEFAULT_SERVICES;
+                const snapshot = await db.collection('services').get();
+                const services = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                if (services.length === 0) {
+                    // Init defaults
+                    const batch = db.batch();
+                    DEFAULT_SERVICES.forEach(s => {
+                        const ref = db.collection('services').doc();
+                        batch.set(ref, s);
+                    });
+                    await batch.commit();
                     return DEFAULT_SERVICES;
                 }
-                return JSON.parse(stored);
+                return services;
             },
-            addService: (service) => {
-                const current = AppStore.getServices();
-                const newService = { ...service, id: Date.now() };
-                localStorage.setItem(AppStore.getKeyServices(), JSON.stringify([...current, newService]));
-                return newService;
+            addService: async (service) => {
+                if (!db) return;
+                const docRef = await db.collection('services').add(service);
+                return { id: docRef.id, ...service };
             },
-            deleteService: (id) => {
-                const current = AppStore.getServices();
-                const updated = current.filter(s => s.id !== id);
-                localStorage.setItem(AppStore.getKeyServices(), JSON.stringify(updated));
+            deleteService: async (id) => {
+                if (!db) return;
+                await db.collection('services').doc(id).delete();
             },
 
             // Time Slots CRUD
-            getTimes: () => {
-                const stored = localStorage.getItem(AppStore.getKeyTimes());
-                if (!stored) {
-                    localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(DEFAULT_TIMES));
+            getTimes: async () => {
+                if (!db) return DEFAULT_TIMES;
+                const doc = await db.collection('settings').doc('timeslots').get();
+                if (!doc.exists) {
+                    await db.collection('settings').doc('timeslots').set({ times: DEFAULT_TIMES });
                     return DEFAULT_TIMES;
                 }
-                return JSON.parse(stored);
+                return doc.data().times || DEFAULT_TIMES;
             },
-            addTime: (time) => {
-                const current = AppStore.getTimes();
+            addTime: async (time) => {
+                if (!db) return;
+                const current = await AppStore.getTimes();
                 if (current.includes(time)) return;
                 const updated = [...current, time].sort((a, b) => new Date('1970/01/01 ' + a) - new Date('1970/01/01 ' + b));
-                localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(updated));
+                await db.collection('settings').doc('timeslots').set({ times: updated });
             },
-            deleteTime: (time) => {
-                const current = AppStore.getTimes();
+            deleteTime: async (time) => {
+                if (!db) return;
+                const current = await AppStore.getTimes();
                 const updated = current.filter(t => t !== time);
-                localStorage.setItem(AppStore.getKeyTimes(), JSON.stringify(updated));
+                await db.collection('settings').doc('timeslots').set({ times: updated });
             }
         };
 
         const Auth = {
-            login: (username, password) => {
-                const staffList = AppStore.getStaff();
+            login: async (username, password) => {
+                const staffList = await AppStore.getStaff();
                 const user = staffList.find(s => s.username.toLowerCase() === username.toLowerCase() && s.password === password);
                 if (user) {
                     localStorage.setItem('lenails_user', JSON.stringify(user));
@@ -619,7 +663,10 @@
         const StepService = ({ onSelect, selectedId }) => {
             const [services, setServices] = useState([]);
             useEffect(() => {
-                setServices(AppStore.getServices());
+                const load = async () => {
+                    setServices(await AppStore.getServices());
+                };
+                load();
             }, []);
 
             return (
@@ -649,7 +696,10 @@
             const [staffList, setStaffList] = useState([]);
 
             useEffect(() => {
-                setStaffList(AppStore.getStaff());
+                const load = async () => {
+                    setStaffList(await AppStore.getStaff());
+                };
+                load();
             }, []);
 
             return (
@@ -689,8 +739,11 @@
             const [appointments, setAppointments] = useState([]);
 
             useEffect(() => {
-                setTimes(AppStore.getTimes());
-                setAppointments(AppStore.getAppointments());
+                const load = async () => {
+                    setTimes(await AppStore.getTimes());
+                    setAppointments(await AppStore.getAppointments());
+                }
+                load();
             }, []);
 
             const dates = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + i); return d; });
@@ -974,11 +1027,13 @@
             const [name, setName] = useState('');
             const [results, setResults] = useState(null);
 
-            const handleSearch = (e) => {
+            const handleSearch = async (e) => {
                 e.preventDefault();
                 if (!name.trim()) return;
 
-                const allAppts = AppStore.getAppointments();
+                if (!name.trim()) return;
+
+                const allAppts = await AppStore.getAppointments();
                 // Simple partial match, case-insensitive
                 const matches = allAppts.filter(a =>
                     a.customer.name.toLowerCase().includes(name.toLowerCase())
@@ -1049,9 +1104,9 @@
             const [showPassword, setShowPassword] = useState(false);
             const [error, setError] = useState('');
 
-            const handleLogin = (e) => {
+            const handleLogin = async (e) => {
                 e.preventDefault();
-                const user = Auth.login(username, password);
+                const user = await Auth.login(username, password);
                 if (user) {
                     if (user.role === 'Manager') {
                         navigate('/manager');
@@ -1104,10 +1159,10 @@
             const [error, setError] = useState('');
             const [success, setSuccess] = useState(false);
 
-            const handleReset = (e) => {
+            const handleReset = async (e) => {
                 e.preventDefault();
                 try {
-                    AppStore.resetPassword(username, key, newPassword);
+                    await AppStore.resetPassword(username, key, newPassword);
                     setSuccess(true);
                 } catch (err) {
                     setError(err.message);
@@ -1165,10 +1220,10 @@
 
             const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-            const handleSubmit = (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
-                    const newUser = AppStore.addStaff(formData);
+                    const newUser = await AppStore.addStaff(formData);
                     setCreatedUser(newUser);
                 } catch (err) {
                     setError(err.message);
@@ -1248,16 +1303,20 @@
             const [times, setTimes] = useState([]);
             const [refresh, setRefresh] = useState(0);
             const [selectedDate, setSelectedDate] = useState(new Date());
+            const [editingAppt, setEditingAppt] = useState(null);
 
             useEffect(() => {
                 if (!user || user.role !== 'Manager') {
                     navigate('/login');
                     return;
                 }
-                setAppointments(AppStore.getAppointments());
-                setServices(AppStore.getServices());
-                setStaff(AppStore.getStaff());
-                setTimes(AppStore.getTimes());
+                const loadData = async () => {
+                    setAppointments(await AppStore.getAppointments());
+                    setServices(await AppStore.getServices());
+                    setStaff(await AppStore.getStaff());
+                    setTimes(await AppStore.getTimes());
+                };
+                loadData();
             }, [user, navigate, refresh]);
 
             const filteredAppointments = useMemo(() => {
@@ -1269,7 +1328,7 @@
                 }).sort((a, b) => new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time));
             }, [appointments, selectedDate]);
 
-            const handleAddService = (e) => {
+            const handleAddService = async (e) => {
                 e.preventDefault();
                 const form = e.target;
                 const newService = {
@@ -1279,44 +1338,97 @@
                     price: parseFloat(form.price.value),
                     desc: form.desc.value
                 };
-                AppStore.addService(newService);
+                await AppStore.addService(newService);
                 form.reset();
                 setRefresh(r => r + 1);
             };
 
-            const handleDeleteService = (id) => {
+            const handleDeleteService = async (id) => {
                 if (confirm('Delete this service?')) {
-                    AppStore.deleteService(id);
+                    await AppStore.deleteService(id);
                     setRefresh(r => r + 1);
                 }
             };
 
-            const handleDeleteStaff = (id) => {
+            const handleDeleteStaff = async (id) => {
                 if (confirm('Delete this staff member?')) {
-                    AppStore.deleteStaff(id);
+                    await AppStore.deleteStaff(id);
                     setRefresh(r => r + 1);
                 }
             };
 
-            const handleAddTime = (e) => {
+            const handleAddTime = async (e) => {
                 e.preventDefault();
                 const time = e.target.time.value;
                 if (time) {
-                    AppStore.addTime(time);
+                    await AppStore.addTime(time);
                     e.target.reset();
                     setRefresh(r => r + 1);
                 }
             };
 
-            const handleDeleteTime = (t) => {
+            const handleDeleteTime = async (t) => {
                 if (confirm('Remove this time slot?')) {
-                    AppStore.deleteTime(t);
+                    await AppStore.deleteTime(t);
                     setRefresh(r => r + 1);
                 }
             };
 
+            const handleSaveEdit = async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const newDate = new Date(form.date.value);
+                const userTimezoneOffset = newDate.getTimezoneOffset() * 60000;
+                const adjustedDate = new Date(newDate.getTime() + userTimezoneOffset);
+
+                const updated = {
+                    // Adjust for timezone offset to keep date correct
+                    ...editingAppt,
+                    date: adjustedDate,
+                    time: form.time.value,
+                    staff: staff.find(s => s.id == form.staffId.value) || (!form.staffId.value ? { name: 'Any Professional' } : editingAppt.staff)
+                };
+
+                await AppStore.updateAppointment(updated);
+                setEditingAppt(null); // Close modal
+                setRefresh(r => r + 1);
+            };
+
             return (
                 <div className="container page-enter" style={{ padding: '40px 20px', minHeight: '80vh' }}>
+
+                    {/* Edit Modal Overlay */}
+                    {editingAppt && (
+                        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.5)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div className="card" style={{ padding: '32px', width: '90%', maxWidth: '500px' }}>
+                                <h2 style={{ marginBottom: '24px' }}>Edit Appointment</h2>
+                                <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Date</label>
+                                        <input className="input-apple" type="date" name="date" defaultValue={new Date(editingAppt.date).toISOString().split('T')[0]} required />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Time</label>
+                                        <select className="input-apple" name="time" defaultValue={editingAppt.time} required>
+                                            {times.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '8px', display: 'block' }}>Assigned Staff</label>
+                                        <select className="input-apple" name="staffId" defaultValue={editingAppt.staff?.id || ''}>
+                                            <option value="">Any Professional</option>
+                                            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                                        <Button type="button" variant="secondary" onClick={() => setEditingAppt(null)} style={{ flex: 1 }}>Cancel</Button>
+                                        <Button type="submit" variant="accent" style={{ flex: 1 }}>Save Changes</Button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                         <div>
                             <h1 style={{ fontSize: '32px' }}>Manager Portal</h1>
@@ -1345,7 +1457,10 @@
                                         <div key={appt.id} className="card" style={{ padding: '24px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                                                 <span className="status-badge">{appt.time}</span>
-                                                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-accent)' }}>{appt.staff?.name}</span>
+                                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-accent)' }}>{appt.staff?.name || 'Open Shift'}</span>
+                                                    <button onClick={() => setEditingAppt(appt)} style={{ fontSize: '12px', background: '#F2F2F7', padding: '4px 8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>Edit</button>
+                                                </div>
                                             </div>
                                             <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>{appt.service?.name}</h3>
                                             <div style={{ fontSize: '14px' }}>Client: {appt.customer.name} ({appt.customer.phone})</div>
@@ -1436,40 +1551,64 @@
                     navigate('/login');
                     return;
                 }
-                const all = AppStore.getAppointments();
-                const relevant = all.filter(a => a.staff?.name === user.name || a.staff?.name === 'Any Professional');
-                setAppointments(relevant);
+                const load = async () => {
+                    setAppointments(await AppStore.getAppointments());
+                }
+                load();
             }, [user, navigate, refresh]);
 
-            // Filter by selected Date
-            const filteredAppointments = useMemo(() => {
-                return appointments.filter(a => {
+            // Filter appointments
+            const myAppointments = useMemo(() => {
+                return appointments.filter(a => a.staff?.name === user.name).sort((a, b) => new Date(a.date) - new Date(b.date));
+            }, [appointments, user]);
+
+            const openShifts = useMemo(() => {
+                return appointments.filter(a => !a.staff || a.staff.name === 'Any Professional').sort((a, b) => new Date(a.date) - new Date(b.date));
+            }, [appointments]);
+
+            const filteredMyAppointments = useMemo(() => {
+                return myAppointments.filter(a => {
                     const d = new Date(a.date);
                     return d.getDate() === selectedDate.getDate() &&
                         d.getMonth() === selectedDate.getMonth() &&
                         d.getFullYear() === selectedDate.getFullYear();
-                }).sort((a, b) => {
-                    // Simple text sort for "09:00 AM" works decently for same-day
-                    return new Date('1970/01/01 ' + a.time) - new Date('1970/01/01 ' + b.time);
                 });
-            }, [appointments, selectedDate]);
+            }, [myAppointments, selectedDate]);
+
+            const filteredOpenShifts = useMemo(() => {
+                return openShifts.filter(a => {
+                    const d = new Date(a.date);
+                    return d.getDate() === selectedDate.getDate() &&
+                        d.getMonth() === selectedDate.getMonth() &&
+                        d.getFullYear() === selectedDate.getFullYear();
+                });
+            }, [openShifts, selectedDate]);
+
 
             const handleLogout = () => {
                 Auth.logout();
                 navigate('/login');
             };
 
-            const handleDeleteAppt = (id) => {
+            const handleDeleteAppt = async (id) => {
                 if (confirm('Are you sure you want to cancel this appointment?')) {
-                    AppStore.deleteAppointment(id);
+                    await AppStore.deleteAppointment(id);
                     setRefresh(r => r + 1);
                 }
             };
 
-            const handleDeleteAccount = () => {
+            const handleClaimAppt = async (appt) => {
+                if (confirm('Claim this appointment?')) {
+                    const updated = { ...appt, staff: user };
+                    await AppStore.updateAppointment(updated);
+                    setRefresh(r => r + 1);
+                }
+            };
+
+            const handleDeleteAccount = async () => {
                 if (confirm('WARNING: This will permanently delete your account and remove you from the booking system. Are you sure?')) {
-                    AppStore.deleteStaff(user.id);
-                    Auth.logout();
+                    await AppStore.deleteStaff(user.id);
+                    handleLogout();
                     navigate('/');
                 }
             }
@@ -1492,25 +1631,25 @@
                         <div>
                             <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>Overview</h2>
                             <Calendar
-                                appointments={appointments}
+                                appointments={[...myAppointments, ...openShifts]}
                                 selectedDate={selectedDate}
                                 onSelectDate={setSelectedDate}
                             />
                         </div>
 
-                        {/* List Column */}
+                        {/* My Schedule Column */}
                         <div>
                             <h2 style={{ fontSize: '20px', marginBottom: '24px' }}>
-                                Schedule for {selectedDate.toLocaleDateString()}
+                                My Schedule ({filteredMyAppointments.length})
                             </h2>
 
-                            {filteredAppointments.length === 0 ? (
-                                <div className="card" style={{ padding: '40px', textAlign: 'center', marginBottom: '60px' }}>
-                                    <p className="text-secondary">No appointments for this day.</p>
+                            {filteredMyAppointments.length === 0 ? (
+                                <div className="card" style={{ padding: '24px', textAlign: 'center', marginBottom: '40px' }}>
+                                    <p className="text-secondary">No personal appointments.</p>
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '60px' }}>
-                                    {filteredAppointments.map(appt => (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '40px' }}>
+                                    {filteredMyAppointments.map(appt => (
                                         <div key={appt.id} className="card" style={{ padding: '24px' }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                                                 <span className="status-badge" style={{ background: '#E0F8E0', color: '#105010' }}>{appt.time}</span>
@@ -1523,6 +1662,29 @@
                                             <div style={{ fontSize: '14px', color: '#86868B' }}>
                                                 Phone: {appt.customer.phone}
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Open Shifts Column */}
+                            <h2 style={{ fontSize: '20px', marginBottom: '24px', color: 'var(--c-accent)' }}>
+                                Open Shifts ({filteredOpenShifts.length})
+                            </h2>
+                            {filteredOpenShifts.length === 0 ? (
+                                <div className="card" style={{ padding: '24px', textAlign: 'center', marginBottom: '60px', background: '#FFF0F5', border: '1px dashed var(--c-accent)' }}>
+                                    <p className="text-secondary">No open shifts for this day.</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '60px' }}>
+                                    {filteredOpenShifts.map(appt => (
+                                        <div key={appt.id} className="card" style={{ padding: '24px', border: '2px solid #FFF0F5' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                <span className="status-badge">{appt.time}</span>
+                                                <Button variant="accent" onClick={() => handleClaimAppt(appt)} style={{ padding: '4px 12px', fontSize: '12px', height: 'auto' }}>Claim</Button>
+                                            </div>
+                                            <h3 style={{ fontSize: '18px', marginBottom: '4px' }}>{appt.service?.name}</h3>
+                                            <p className="text-secondary" style={{ fontSize: '14px' }}>Client: {appt.customer.name}</p>
                                         </div>
                                     ))}
                                 </div>
