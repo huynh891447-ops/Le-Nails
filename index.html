@@ -397,7 +397,17 @@
             getAppointments: async () => {
                 if (!db) return [];
                 const snapshot = await db.collection('appointments').get();
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                return snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    // Fix: Convert Firestore Timestamp to JS Date
+                    if (data.date && typeof data.date.toDate === 'function') {
+                        data.date = data.date.toDate();
+                    } else if (data.date) {
+                        // Fallback for string dates
+                        data.date = new Date(data.date);
+                    }
+                    return { id: doc.id, ...data };
+                });
             },
             addAppointment: async (appt) => {
                 if (!db) throw new Error("Firebase not initialized");
